@@ -1,0 +1,11 @@
+---
+title: "Homework05"
+author: "Thomas Rodriguez"
+format: html
+embed-resources: true
+editor: visual
+---
+
+# Chapters 1-3 - Data Visualization
+
+## Question 1

@@ -1,0 +1,89 @@
+---
+title: "Homework 04"
+author: "Thomas Rodriguez"
+format: html
+embed-resources: true
+editor: visual
+---
+
+## Chapter 4
+
+```{r}
+#| message: false
+library(tidyverse)
+theme_set(theme_minimal())
+```
+
+## Question 1
+
+```{r}
+#| message: false
+nfl_salaries <- read_csv("https://raw.githubusercontent.com/vaiseys/dav-course/main/Data/nfl_salaries.csv")
+```
+
+## Question 2
+
+```{r}
+nfl_salaries_tidy <- nfl_salaries %>% 
+  pivot_longer(cols = c(-year),
+  names_to = "position",
+  values_to = "salary")
+
+nfl_salaries_tidy
+```
+
+## Question 3
+
+```{r}
+#| message: false
+quarterbacks <- nfl_salaries_tidy %>% 
+  filter(position == "Quarterback") %>% 
+  mutate(salary_in_millions = salary / 1000000)
+```
+
+```{r}
+#| message: false
+ggplot(quarterbacks,
+       aes(x = salary_in_millions)) +
+  geom_histogram(color = "black", fill = "white") +
+  facet_wrap(~year) +
+  labs(x = "Salary (in millions)",
+       y = "# of Quarterbacks",
+       title = "NFL Quarterback Salaries")
+```
+
+Most quarterbacks make less than \$1 million or around \$1 million dollars, a few make around \$5 million, and a very small amount are making more than that. Over the years, there have been more cases of quarterbacks receiving salaries above \$5 million.
+
+## Question 4
+
+```{r}
+#| message: false
+avg_salaries <- nfl_salaries_tidy %>% 
+  group_by(position, year) %>% 
+  summarize(avg_salary = mean(salary, na.rm = TRUE))
+
+avg_salaries
+```
+
+## Question 5
+
+```{r}
+avg_salaries_millions <- avg_salaries %>% 
+mutate(avg_sal_millions = avg_salary / 1000000)
+```
+
+```{r}
+ggplot(avg_salaries_millions,
+       aes(x = year,
+           y = avg_sal_millions,
+           color = position)) +
+  geom_line() +
+  geom_point(alpha = .5) +
+  facet_wrap(~position) +
+  labs(x = "Year",
+       y = "Average Salary (in millions)",
+       title = "Evolution of NFL Position's Average Salary",
+       subtitle = "2011-2018")
+```
+
+None of the average salaries have decreased over the years However, the average salaries for running backs has not increased, and tight ends special team, and safety average salaries have seen slower growths as well. Quarterback, offensive lineman, defensive lineman, and wide receiver average salaries have experienced the highest growth across the years. Special teamers still receive the lowest average salary of any position and linemen still receive the highest average salary of any positions.

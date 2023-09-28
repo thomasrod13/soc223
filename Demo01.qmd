@@ -1,0 +1,27 @@
+---
+title: "Demo 1"
+author: "Thomas Rodriguez"
+format: html
+embed-resources: true
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+```
+
+Now I'm going to show a few tricks in R.
+
+```{r}
+data(mtcars)
+```
+
+Let me take a look at the dataset.
+
+```{r}
+glimpse(mtcars)
+```
+
+```{r}
+hist(mtcars$mpg)
+```

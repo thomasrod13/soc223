@@ -1,0 +1,86 @@
+---
+title: "Homework 1"
+author: "Thomas Rodriguez"
+format: html
+embed-resources: true
+editor: visual
+---
+
+## Question 1
+
+I installed the three packages. But I did it in the console as I was instructed to do.
+
+## Question 2
+
+```{r}
+library(causact)
+library(dplyr)
+library(igraph)
+
+df <- dplyr::as_data_frame(x = c(1,2,3))
+
+glimpse(df)
+
+x <- c(5,6,2,7,9,1)
+n_distinct(x)
+```
+
+The code that specifies using as_data_frame from dplyr works because the function from dplyr takes objects and turns them into a data frame, which is what we are doing with c(1, 2, 3).
+
+R called the function from igraph instead of dplyr because it was loaded in after dplyr, and subsequently "masked" the as_data_frame object from dplyr, therefore becoming the primary reference point for that specific function when the package is unspecified.
+
+## Question 3
+
+```{r}
+?n_distinct
+```
+
+The n_distinct function is used to count how many unique combinations are in a set of vectors. In reference to question 2, the function counted six, because in the value x, there are six different unique combinations: 5, 6, 2, 7, 9, and 1. If there were multiples of the same numbers, it would still be six because those numbers are not distinct.
+
+## Question 4
+
+```{r}
+glimpse(baseballData)
+```
+
+The dataset has 12,145 rows and 5 columns. The Home column is a categorical variable while HomeScore is a quantitative variable.
+
+## Question 5
+
+```{r}
+baseballData[1,]
+baseballData[,2:3] %>% head()
+```
+
+One row in the data represents an observation of a baseball game.
+
+These two columns are variables that represent the home team and the visitor team of each baseball game.
+
+## Question 6
+
+```{r}
+name <-
+  c(
+    "Wayne Gretzky",
+    "Gordie Howe",
+    "Jaromir Jagr",
+    "Brett Hull",
+    "Marcel Dionne",
+    "Phil Esposito" ,
+    "Mike Gartner",
+    "Alex Ovechkin",
+    "Mark Messier" ,
+    "Steve Yzerman"
+  )
+
+goals <- c(894, 801, 766, 741, 731, 717, 708, 700, 694, 692)
+
+year_started <- c(1979, 1946, 1990, 1986, 1971, 1963, 1979, 2005, 1979, 1983)
+
+df <- tibble( 
+  Name = name, 
+  Goals = goals, 
+  Year_Started = year_started) 
+
+glimpse(df)
+```

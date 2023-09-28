@@ -1,0 +1,143 @@
+---
+title: "Homework 03"
+author: "Thomas Rodriguez"
+format: html
+embed-resources: true
+editor: visual
+---
+
+## Chapter 3
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+mario_kart <- read_csv("https://raw.githubusercontent.com/vaiseys/dav-course/main/Data/world_records.csv")
+```
+
+```{r}
+glimpse(mario_kart)
+```
+
+## Question 1
+
+```{r}
+three_laps <- mario_kart %>% filter(type == "Three Lap")
+```
+
+```{r}
+no_rainbow_road <- three_laps %>% 
+  filter(track != "Rainbow Road") %>% 
+  drop_na()
+
+only_rainbow_road <- three_laps %>% 
+  filter(track == "Rainbow Road") %>% 
+  drop_na()
+```
+
+## Question 2
+
+```{r}
+only_rainbow_road %>% 
+  summarize(avg_time = mean(time),
+            sd_time = sd(time))
+```
+
+```{r}
+no_rainbow_road %>% 
+  summarize(avg_time = mean(time),
+            sd_time = sd(time))
+```
+
+Rainbow Road has a much higher average time than all the other tracks combined which makes sense because it is one of the longest courses. In addition, it has a wider standard deviation, probably because of its difficulty some people may be worse at the track and take longer to finish it while others who are experts can complete it very well.
+
+## Question 3
+
+```{r}
+three_laps %>% 
+  group_by(track) %>% 
+  summarize(num_records = n()) %>%
+  arrange(desc(num_records))
+```
+
+Toad's Turnpike has had the most records established with 124.
+
+## Question 4
+
+```{r}
+three_laps %>% 
+  group_by(player, track) %>% 
+  summarize(num_records = n()) %>%
+  arrange(desc(num_records))
+```
+
+Penev has recorded the most records on Choco Mountain with 26.
+
+## Question 5
+
+```{r}
+three_laps %>% 
+  group_by(track) %>% 
+  summarize(avg_time = mean(time)) %>%
+  arrange(desc(avg_time))
+```
+
+Rainbow Road has the highest average time.
+
+```{r}
+three_laps %>% 
+  group_by(player) %>% 
+  arrange(time) %>% 
+  slice(1) %>% 
+  head()
+```
+
+```{r}
+three_laps %>% 
+  select(track, time) %>% 
+  group_by(track) %>% 
+  summarize(best_time = min(time)) %>% 
+  arrange(best_time)
+
+```
+
+## Question 6
+
+```{r}
+long_record <- three_laps %>% 
+  mutate(long_duration = if_else(record_duration > 100, 1L, 0L))
+
+long_record %>%
+  group_by(player) %>% 
+  summarize(total_long = sum(long_duration)) %>% 
+  arrange(desc(total_long))
+```
+
+MR holds the most long duration records.
+
+## Question 7
+
+```{r}
+drivers <- read_csv("https://raw.githubusercontent.com/vaiseys/dav-course/main/Data/drivers.csv")
+```
+
+```{r}
+new_drivers <- drivers %>% 
+  group_by(player) %>% 
+  slice(1)
+
+join_records <- left_join(three_laps, new_drivers)
+
+join_records %>%
+  drop_na() %>% 
+  ggplot(aes(x = reorder(nation, desc(records)),
+           y = records)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  labs(x = "Country",
+       y = "Amount of records",
+       caption = "Records without country listed not included",
+       title = "Records per country",
+       subtitle = "All listed records by drivers")
+```
