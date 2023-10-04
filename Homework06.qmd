@@ -1,0 +1,150 @@
+---
+title: "HomeworkDV04"
+author: "Thomas Rodriguez"
+format: html
+embed-resources: true
+editor: visual
+---
+
+# Chapter 4 - Data Visualization
+
+## Question 1
+
+```{r}
+#| message: false
+library(tidyverse)
+
+tv_ratings <- read_csv("https://raw.githubusercontent.com/vaiseys/dav-course/main/Data/tv_ratings.csv")
+
+glimpse(tv_ratings)
+```
+
+```{r}
+tv_long <- tv_ratings %>% 
+  group_by(title) %>% 
+  summarise(num_seasons = n()) %>% 
+  ungroup() %>% 
+  left_join(tv_ratings, by = "title") 
+
+tv_long <- tv_long %>% 
+  filter(num_seasons >= 5)
+```
+
+```{r}
+ggplot(tv_long,
+       aes(x = seasonNumber,
+           y = av_rating,
+           group = title,
+           color = title)) +
+  geom_line() +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+I can not draw any conclusions because there is too much overlap.
+
+## Question 2
+
+```{r}
+ggplot(tv_long,
+       aes(x = seasonNumber,
+           y = av_rating,
+           group = title,
+           color = title)) +
+  geom_line() +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  facet_wrap(~genres)
+```
+
+Crime, Drama, Mystery genre shoes tend to the last the longest and Drama, Romance shows last longer too. Ratings tend to steadily drop after more seasons, though there are a few outliers. The show who's ratings just plummeted is Are You Afraid of the Dark?
+
+## Question 3
+
+```{r}
+tv_ratings_best <- tv_ratings %>% 
+  filter(av_rating >= 9)
+```
+
+```{r}
+ggplot(tv_ratings_best,
+       aes(x = genres)) +
+  geom_bar() + 
+  coord_flip() +
+  theme_minimal() 
+```
+
+coord_flip() flips the x-axis and puts it on the y-axis and vice versa. The genre with the most top-rated shows is Drama, with 12 shows.
+
+## Question 4
+
+```{r}
+comedies_dramas <- tv_ratings %>% 
+  mutate(is_comedy = if_else(str_detect(genres, "Comedy"), 
+                             1, 
+                             0)) %>% 
+  filter(is_comedy == 1 | genres == "Drama") %>% 
+  mutate(genres = if_else(genres == "Drama",                                                                 "Drama", 
+                          "Comedy"))
+
+glimpse(comedies_dramas)
+```
+
+```{r}
+ggplot(comedies_dramas,
+       aes(x = av_rating,
+           group = genres,
+           color = genres)) +
+  geom_density() +
+  theme_minimal()
+```
+
+Dramas are rated higher than comedies as the graph shows that the drama line is above the comedy line for the highest ratings, and the peak for dramas is about 8.25 while comedies is 8.
+
+## Question 5
+
+```{r}
+ggplot(comedies_dramas,
+       aes(x = av_rating,
+           group = genres,
+           fill = genres,)) +
+  geom_histogram(color = "white",
+                 binwidth = .2) +
+  theme_minimal()
+```
+
+It shows us that there are a lot more comedy shows than there are drama shows.
+
+```{r}
+ggplot(comedies_dramas,
+       aes(x = av_rating,
+           group = genres,
+           color = genres)) +
+  geom_freqpoly(binwidth = .2) +
+  theme_minimal()
+```
+
+The graph is similar to the histogram graph but is visualizing it as a line and showing the peaks of the bars. I think the density plot is the most informative because it most clearly illustrates that more dramas are receiving the highest ratings in comparison to comedies. and at what point that happens (around an average rating of 9). Its only disadvantage in comparison to the other two graphs is that it is harder to tell the exact amount of comedies and dramas that are receiving the rating.
+
+## Question 6
+
+```{r}
+ggplot(comedies_dramas,
+       aes(x = av_rating,
+           y = share)) +
+  geom_bin_2d() +
+  theme_minimal()
+```
+
+I see that some shows have much higher shares than other shows even if they have similar ratings and I can better see the amount of shows that are concentrated in a certain area.
+
+```{r}
+ggplot(comedies_dramas,
+       aes(x = av_rating,
+           y = share,
+           fill = genres)) +
+  geom_bin_2d() +
+  theme_minimal()
+```
+
+I see that comedies tend to have higher shares than dramas despite lower average ratings. The big outlier is a drama show, and by looking at the data it is Season 1 of Dekalog.
