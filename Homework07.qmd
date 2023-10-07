@@ -1,0 +1,166 @@
+---
+title: "Homework 07"
+author: "Thomas Rodriguez"
+format: html
+embed-resources: true
+editor: visual
+---
+
+# Chapter 5 - Data Visualization
+
+```{r}
+#| message: false
+library(tidyverse)
+wncaa <- read_csv("https://raw.githubusercontent.com/vaiseys/dav-course/main/Data/wncaa.csv")
+
+glimpse(wncaa)
+```
+
+## Question 1
+
+```{r}
+wncaa2 <- wncaa %>%
+  filter(tourney_finish == "Champ")
+  
+```
+
+```{r}
+wncaa_champs <- wncaa2 %>% 
+  group_by(school) %>% 
+  summarize(number = n()) %>% 
+  mutate(freq = number / sum(number),
+         pct = round((freq*100), 0))
+```
+
+```{r}
+ggplot(wncaa_champs,
+       aes(x = reorder(school, pct, na.rm = TRUE),
+           y = pct)) +
+  geom_col() +
+  coord_flip() +
+  theme_minimal() +
+  labs(x = "School",
+       y = "Percentage",
+       title = "Percentage of Tournaments Won by WNCAA Teams")
+```
+
+UCONN and Tennessee are the teams with the most tournament wins, while most of the other teams have won very little times.
+
+## Question 2
+
+```{r}
+champ_names <- unique(wncaa_champs$school)
+
+winners <- wncaa %>% 
+  filter(school %in% champ_names)
+```
+
+```{r}
+ggplot(winners,
+       aes(x = reorder(school, seed, na.rm = TRUE),
+           y = seed)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(alpha = .3) +
+  coord_flip() +
+  theme_minimal() +
+  labs(x = "School",
+       y = "Seed",
+       title = "Distribution of Seeds",
+       subtitle = "WNCAA Tournaments",
+       caption = "Only tournament winners")
+```
+
+Tennessee and UConn, the teams with the most tournament wins, are more likely to be a higher seed (1 or 2).
+
+```{r}
+ggplot(winners,
+       aes(x = reorder(school, seed, na.rm = TRUE),
+           y = seed)) +
+  geom_violin() +
+  geom_jitter(alpha = .3) +
+  coord_flip() +
+  theme_minimal() +
+  labs(x = "School",
+       y = "Seed",
+       title = "Distribution of Seeds",
+       subtitle = "WNCAA Tournaments",
+       caption = "Only tournament winners")
+```
+
+I think a boxplot is more informative because it is easier to see the distributions and where certain features are like the interquartile ranges and the median.
+
+## Question 3
+
+```{r}
+ggplot(winners,
+       aes(x = reorder(school, seed, na.rm = TRUE),
+           y = seed)) +
+  geom_point() +
+  coord_flip() +
+  theme_minimal() +
+  labs(x = "School",
+       y = "Seed",
+       title = "Distribution of Seeds",
+       subtitle = "WNCAA Tournaments",
+       caption = "Only tournament winners")
+```
+
+It only shows if the team had been placed at the seed but not how many times they were that seed, and therefore is much harder to tell what we are trying to find, which is the total distribution of seeds.
+
+## Question 4
+
+```{r}
+winners_mean_sd <- winners |> 
+  group_by(school) |> 
+  summarize(across(where(is.numeric),
+                   list(mean = mean,
+                        sd = sd)))
+```
+
+```{r}
+ggplot(winners_mean_sd,
+       aes(x = reorder(school, reg_percent_mean, na.rm = TRUE),
+           y = reg_percent_mean)) +
+  geom_point() +
+  coord_flip() +
+  theme_minimal() + 
+  labs(x = "School",
+       y = "Percentage",
+       title = "Average Win Percentage Across Regular Seasons",
+       subtitle = "WNCAA Teams",
+       caption = "Only tournament winners")
+```
+
+Most teams fall between a 75-80% regular season win percentage. Five teams have above 80%, but UCONN is an outlier with an above 90% regular season win percentage. Texas A&M had the lowest regular season win percentage, slightly below 75%.
+
+```{r}
+ggplot(winners_mean_sd,
+       aes(x = reorder(school, reg_percent_mean, na.rm = TRUE),
+           y = reg_percent_mean)) +
+  geom_pointrange(aes(ymin = reg_percent_mean - reg_percent_sd, ymax = reg_percent_mean + reg_percent_sd)) +
+  coord_flip() +
+  theme_minimal() +
+  labs(x = "School",
+       y = "Percentage",
+       title = "Average Win Percentage and Distribution Across Regular Seasons",
+       subtitle = "WNCAA Teams",
+       caption = "Only tournament winners")
+```
+
+Texas A&M has the narrowest interval which means that they have the least variation in their regular season win percentages.
+
+```{r}
+ggplot(winners_mean_sd,
+       aes(x = reorder(school, reg_percent_mean, na.rm = TRUE),
+           y = reg_percent_mean)) +
+  geom_linerange(aes(ymin = reg_percent_mean - reg_percent_sd, ymax = reg_percent_mean + reg_percent_sd)) +
+  coord_flip() +
+  theme_minimal() +
+  labs(x = "School",
+       y = "Percentage",
+       title = "Win Percentage Distribution Across Regular Seasons",
+       subtitle = "WNCAA Teams",
+       caption = "Only tournament winners")
+```
+
+I think this is a bad idea because since we are trying to look at the deviation from the mean, this graph gets rid of the mean and makes it more difficult to estimate.
