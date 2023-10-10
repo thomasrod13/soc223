@@ -1,0 +1,56 @@
+---
+title: "2023-10-10-inclass"
+author: "Thomas Rodriguez"
+format: html
+embed-resources: true
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+library(moderndive)
+library(patchwork)
+theme_set(theme_light())
+```
+
+```{r}
+data(evals)
+```
+
+```{r}
+mod1 <- lm(score ~ ethnicity,
+           data = evals)
+broom::tidy(mod1)
+```
+
+Estimates that non minority instructors have a score of .12 higher than a minority instructor.
+
+```{r}
+ggplot(evals,
+       aes(x = score,
+           y = ethnicity)) +
+  geom_boxplot(coef = 0,
+               outlier.alpha = 0,
+               width = .5) +
+  geom_jitter(alpha = .3,
+              height = .2) 
+```
+
+```{r}
+mod2 <- lm(score ~ language,
+           data = evals)
+broom::tidy(mod2)
+```
+
+Estimates that instructors that are not native English speakers are likely to have a rating -.25 than instructors that are native English speakers.
+
+```{r}
+ggplot(evals,
+       aes(x = score,
+           y = language)) +
+  geom_boxplot(coef = 0,
+               outlier.alpha = 0,
+               width = .5) +
+  geom_jitter(alpha = .3,
+              height = .2) 
+```
