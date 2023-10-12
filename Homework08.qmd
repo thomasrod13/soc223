@@ -1,0 +1,194 @@
+---
+title: "Homework08"
+author: "Thomas Rodriguez"
+format: html
+embed-resources: true
+editor: visual
+---
+
+# Chapter 5 - Modern Dive
+
+```{r}
+#| message: false
+library(tidyverse)
+
+twitch_data <- read.csv("https://raw.githubusercontent.com/vaiseys/dav-course/main/Data/twitchdata-update.csv")
+```
+
+```{r}
+#| message: false
+library(janitor)
+twitch_data <- clean_names(twitch_data)
+
+colnames(twitch_data)
+```
+
+## Question 1
+
+```{r}
+views_followers <- twitch_data %>% 
+  select(average_viewers, followers)
+
+views_followers %>% 
+  sample_n(size = 5)
+```
+
+Streamers with more followers usually have a higher average viewer count.
+
+```{r}
+summary(views_followers)
+```
+
+The maximums in average viewers and followers are much higher than even the third quartile. The mean and median are also pretty far apart from each other in both variables.
+
+```{r}
+ggplot(twitch_data,
+       aes(x = average_viewers,
+           y = followers)) +
+  geom_jitter(alpha = .1) +
+  theme_minimal()
+```
+
+Most of the points are centered in the bottom left.
+
+```{r}
+ggplot(twitch_data,
+       aes(x = average_viewers,
+           y = followers)) +
+  geom_jitter(alpha = .1) +
+  theme_minimal() +
+  scale_x_log10() +
+  scale_y_log10()
+```
+
+The relationship is positive (higher followers means higher average viewers) and seems to be relatively correlated.
+
+```{r}
+twitch_data <- twitch_data %>% 
+  mutate(log_viewers = log10(average_viewers), 
+         log_followers = log10(followers))
+```
+
+## Question 2
+
+```{r}
+fit1 <- lm(log_viewers ~ log_followers,
+           data = twitch_data)
+```
+
+```{r}
+#| message: false
+library(broom)
+tidy(fit1)
+```
+
+```{r}
+1.1^0.5884958
+```
+
+A 10% increase in followers would result in a 5.8% increase in the average number of viewers.
+
+## Question 3
+
+```{r}
+pred_data <- augment(fit1)
+
+glimpse(pred_data)
+```
+
+```{r}
+pred_data %>% 
+  ggplot(aes(x = log_followers, 
+             y = log_viewers)) +
+  geom_jitter(alpha = 0.4) + 
+  geom_line(aes(x = log_followers, 
+                y = .fitted), 
+            col = "orange") + 
+  theme_minimal() +
+  labs(subtitle = "Fitted Model and Raw Data", 
+       title = "Followers & Average Viewership", 
+       x = "log(followers)", 
+       y = "log(viewers)")
+```
+
+It appears to describe the relationship well since as followers increase average number of viewers goes up as well, and it matches the relationship we found in the previous question as an increase of 1 in the log(followers) is about a 0.5 increase in log(viewers).
+
+```{r}
+pred_data %>% 
+  ggplot(aes(x = log_followers,
+             y = .resid)) + 
+  geom_jitter(alpha = .4) +
+  geom_smooth(method = lm) +
+  theme_minimal() +
+  labs(subtitle = "Residual Model and Raw Data", 
+       title = "Followers & Average Viewership", 
+       x = "log(followers)", 
+       y = "log(viewers)")
+```
+
+There are big residuals but they follow a consistent pattern, usually happening with lower follower counts which makes sense because someone could be raided by a bigger streamer which would cause a spike in viewers.
+
+## Question 4
+
+```{r}
+twitch_languages <- twitch_data %>% 
+  select(average_viewers, language)
+
+twitch_languages %>% 
+  sample_n(size = 5)
+```
+
+```{r}
+summary(twitch_languages)
+```
+
+```{r}
+ggplot(twitch_languages,
+       aes(x = reorder(language, average_viewers),
+           y = average_viewers)) +
+         geom_boxplot() +
+         scale_y_log10() +
+         coord_flip() +
+         theme_minimal() +
+         theme(legend.position = "none") +
+  labs(x = "Language")
+      
+```
+
+## Question 5
+
+```{r}
+twitch_data <- twitch_data %>% 
+  mutate(language = as.factor(language), 
+         language = relevel(language, ref = "English"))
+```
+
+```{r}
+fit2 <- lm(average_viewers ~ language,
+           data = twitch_data)
+tidy(fit2)
+```
+
+The prediction is not entirely correct as Arabic, Spanish, and Russian have a higher estimated average number of viewers than English.
+
+## Question 6
+
+```{r}
+pred_data_2 <- augment(fit2)
+```
+
+```{r}
+pred_data_2 %>% 
+  ggplot(aes(x = average_viewers,
+             y = .resid)) + 
+  scale_x_log10() +
+  geom_jitter(alpha = .4) +
+  geom_smooth(method = lm) +
+  theme_minimal() +
+  labs(title = "Residual Model",
+       subtitle = "Language & Average Viewership",
+       x = "Average Viewership",
+       y = "Residuals")
+```
+
+Our model missed the ends of the average viewership as the line of best fit under predicts people with lower average viewer counts and does not follow those who have higher average viewer counts either as it starts to curve up and some points are much higher.
