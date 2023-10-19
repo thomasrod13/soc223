@@ -1,0 +1,107 @@
+---
+title: "10-19-practice"
+author: "Thomas Rodriguez"
+format: html
+embed-resources: true
+editor: visual
+---
+
+```{r}
+#| message: false
+library(tidyverse)
+library(moderndive)
+library(ggthemes)
+library(patchwork)
+theme_set(theme_light())
+```
+
+```{r}
+data(evals)
+```
+
+```{r}
+data2 <- evals |>
+  rename(sex = gender) 
+```
+
+```{r}
+mod10 <- lm(score ~ age,
+           data = d)
+
+get_regression_table(mod10)
+```
+
+```{r}
+mod10_preds <- get_regression_points(mod10)
+
+head(mod10_preds)
+```
+
+```{r}
+ggplot(data2,
+       aes(x = age,
+           y = score)) +
+  geom_jitter(alpha = .3) +
+  geom_smooth(method = "lm",
+              se = FALSE) +
+  labs(x = "Age",
+       y = "Evaluation",
+       title = "Simple regression results")
+```
+
+```{r}
+ggplot(mod10_preds,
+       aes(x = age,
+           y = residual)) +
+  geom_jitter(alpha = .3) +
+  geom_hline(yintercept = 0,
+             color = "blue") +
+  labs(x = "Age",
+       y = "Residual",
+       title = "Simple regression residuals")
+```
+
+```{r}
+ggplot(data2,
+       aes(x = age,
+           y = score)) +
+  geom_jitter(alpha = .3) +
+  geom_hline(yintercept = mean(d$score),
+             color = "blue") +
+  labs(x = "Age",
+       y = "Evaluation",
+       title = "Guessing the mean for everyone")
+```
+
+```{r}
+ggplot(data2,
+       aes(x = age,
+           y = score)) +
+  geom_jitter(alpha = .3) +
+  geom_hline(yintercept = mean(d$score),
+             color = "blue") +
+  geom_smooth(method = "lm",
+              se = FALSE,
+              color = "red",
+              linetype = "dashed") +
+  labs(x = "Age",
+       y = "Evaluation",
+       title = "Mean vs. regression line")
+```
+
+```{r}
+var_yhat10 <- mod10_preds |> 
+  pull(residual) |> 
+  var()
+
+var_yhat10
+```
+
+```{r}
+1 - (var_yhat10 / var_y)
+```
+
+```{r}
+broom::glance(mod10)
+moderndive::get_regression_summaries(mod10)
+```
