@@ -1,0 +1,173 @@
+---
+title: "Homework09"
+author: "Thomas Rodriguez"
+format: html
+embed-resources: true
+editor: visual
+---
+
+# Chapter 6
+
+```{r}
+#| message: false
+library(tidyverse)
+library(moderndive)
+theme_set(theme_light())
+gender_employment <- read_csv("https://raw.githubusercontent.com/vaiseys/dav-course/main/Data/gender_employment.csv")
+
+glimpse(gender_employment)
+```
+
+```{r}
+#| warning: false
+gender_employment%>% 
+  ggplot(aes(x = year, y = wage_percent_of_male)) +
+  geom_jitter(alpha = 0.1) + 
+  geom_smooth(method = "lm") + 
+  labs(title = "Women's earnings with respect to men's", 
+       y = "% of Men's Income", 
+       x = "Year")
+```
+
+## Question 1
+
+```{r}
+gender_employment <- gender_employment %>% 
+  mutate(major_category = as.factor(major_category), 
+         major_category = relevel(major_category, ref = "Management, Business, and Financial"))
+```
+
+```{r}
+parallel_model <- lm(wage_percent_of_male ~ year + major_category, data = gender_employment)
+
+broom::tidy(parallel_model)
+```
+
+Overall as the years go on the gender wage gap decreases, as the higher the year the lesser the difference there will be.
+
+```{r}
+-306.7183854 + 0.1922095*2015 + 3.3261175
+```
+
+```{r}
+-306.7183854 + 0.1922095*2016 + 6.0769722
+```
+
+## Question 2
+
+```{r}
+#| warning: false
+ggplot(gender_employment,
+       aes(x = year,
+           y = wage_percent_of_male,
+           group = major_category,
+           color = major_category)) +
+  geom_jitter(alpha = .3) +
+  geom_parallel_slopes(se = FALSE) +
+  theme(legend.position = "top") +
+  labs(y = "% of men's income",
+       title = "Women's earnings with respect to men", subtitle = "by Industry Category")
+```
+
+It is not warranted because it is impossible to see how occupation is affecting the gender pay gap over time as all the lines have the same slope, though this is not true because from the estimations we see that occupation has an effect.
+
+## Question 3
+
+```{r}
+#| warning: false
+ggplot(gender_employment,
+       aes(x = year,
+           y = wage_percent_of_male,
+           group = major_category,
+           color = major_category)) +
+  geom_jitter(alpha = .3) +
+  geom_smooth(method = "lm",
+              se = FALSE) +
+  theme(legend.position = "top") +
+  labs(y = "% of men's income",
+       title = "Women's earnings with respect to men", subtitle = "by Industry Category")
+```
+
+```{r}
+interaction_model <- lm(wage_percent_of_male ~ year*major_category, data = gender_employment)
+
+broom::tidy(interaction_model)
+```
+
+```{r}
+-1370.4719187 + 0.7202561*2016 + 1002.8532317 + -0.4946783*2016
+```
+
+```{r}
+-1370.4719187 + 0.7202561*2016 + 2137.6501474 + -1.0581075*2016
+```
+
+The gender wage gap is higher in the service industry than in the computer, engineering, and science industry in 2016.
+
+## Question 4
+
+We would choose to build a model that assumes parallel trends to compare it to when we add an interaction. We can see which one is a better predictor of what we are trying to look at and see if the interaction has an impact on the overall predictions.
+
+## Question 5
+
+```{r}
+simple_fit <- lm(wage_percent_of_male ~ year,
+                 data = gender_employment)
+
+broom::tidy(simple_fit)
+```
+
+Every year, the wage gap between men and women increases about 0.2%.
+
+```{r}
+gender_employment %>% 
+  select(year, wage_percent_of_male, percent_female) %>% 
+  cor(use = "complete.obs")
+```
+
+The more women that belong to the workforce causes a smaller wage gap in comparison to their male counterparts.
+
+```{r}
+multiple_fit <- lm(wage_percent_of_male ~ year*percent_female,
+                   data = gender_employment)
+
+broom::tidy(multiple_fit)
+```
+
+It appears that when the interaction is accounted for, the wage gap decreases by -.005%, which is what I expected given that as more women join the workforce each year the wage gap lessens.
+
+## Question 6
+
+R squared shows us the amount of variance of the response variable in relation to the explanatory variable.
+
+```{r}
+#| message: false
+library(broom)
+simple_glanced <- glance(simple_fit)
+
+simple_glanced$r.squared
+```
+
+```{r}
+multiple_glanced <- glance(multiple_fit)
+
+multiple_glanced$r.squared
+```
+
+The multiple fit model better predicts the variance between each outcome than the simple fit model. This makes sense as better shows how the wage gap has lessened more in recent years than compared to previous years because it takes into account the percentage of women working in the occupations.
+
+```{r}
+random_numbers <- rnorm(n = nrow(gender_employment), 
+                        mean = 0, 
+                        sd = 4)
+```
+
+```{r}
+gender_employment$random_noise <- random_numbers
+
+random_fit <- lm(wage_percent_of_male ~ year + percent_female + random_noise, data = gender_employment)
+
+random_glanced <- glance(random_fit)
+
+random_glanced$r.squared
+```
