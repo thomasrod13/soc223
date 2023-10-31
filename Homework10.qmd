@@ -1,0 +1,157 @@
+---
+title: "Homework10"
+author: "Thomas Rodriguez"
+format: html
+embed-resources: true
+editor: visual
+---
+
+# Homework 6.2
+
+```{r}
+#| message: false
+library(tidyverse)
+library(moderndive)
+theme_set(theme_minimal())
+```
+
+```{r}
+data(bikes, package = "bayesrules")
+glimpse(bikes)
+```
+
+## Question 0
+
+There are 500 rows. Each row represents a day. The dataset covers dates between 2011 and 2012. The highest observed ridership is 6946. The highest windspeed recorded is 34 mph.
+
+```{r}
+max(bikes$rides)
+max(bikes$windspeed)
+```
+
+## Question 1
+
+```{r}
+get_correlation(rides ~ temp_actual,
+                data = bikes)
+
+get_correlation(rides ~ windspeed,
+                data = bikes)
+```
+
+## Question 2
+
+```{r}
+bikes <- bikes |> 
+  mutate(wind_kph = (windspeed*1.61))
+```
+
+The correlation between windspeed in MPH and windspeed in KPH is the same because all that is happening is the unit has been changed, not the actual relationship of the numbers.
+
+## Question 3
+
+```{r}
+mph_model <- lm(rides ~ windspeed,
+               data = bikes)
+kph_model <- lm(rides ~ wind_kph,
+               data = bikes)
+
+get_regression_table(mph_model)
+get_regression_table(kph_model)
+```
+
+The intercept is the same at both models, which makes sense because it is saying when the windspeed, there is a ridership of about 4205. This does not change However, the coefficient is different for the two models because they are two different lengths. One additional unit of windspeed in KPH results in a loss of about 34 rides, while for MPH it is about 55. When we consider that 1 mile is about 1.61 kilometers, it makes sense that it is at a different rate.
+
+## Question 4
+
+```{r}
+pred_mph <- tribble(
+  ~windspeed, ~rides,
+  20, "rides")
+
+pred_mph <- pred_mph %>% 
+  mutate(rides = predict(mph_model, newdata = pred_mph))
+
+pred_kph <- tribble(
+  ~wind_kph, ~rides,
+  20, "rides")
+
+pred_kph <- pred_kph %>% 
+  mutate(rides = predict(kph_model, newdata = pred_kph))
+
+pred_mph
+pred_kph
+```
+
+The predicted ridership when the wind is blowing at 20 MPH is about 3094 rides and 3515 rides when the wind is blowing at 20 KPH.
+
+## Question 5
+
+```{r}
+bikes <- bikes %>% 
+  mutate(temp_c = (temp_feel-32)*(5/9))
+```
+
+```{r}
+model_1 <- lm(rides ~ wind_kph + temp_c,
+              data = bikes)
+
+get_regression_table(model_1) %>% 
+  select(term, estimate)
+```
+
+For a 1 degree increase in the feel of the temperature in Celsius, the model expects a 143.234 increase in rides.
+
+For a 1 kph increase in windspeed, the model expects a 19.842 decrease in rides.
+
+When windspeed is 0 and the temperature feel is 0, ridership is 942.426.
+
+## Question 6
+
+```{r}
+pred_feel_kph <- tibble(
+  situation = 1:3,
+  temp_c = c(25, 15, 10),
+  wind_kph = c(15, 5, 40)
+)
+
+pred_feel_kph <- pred_feel_kph %>% 
+  mutate(expected_rides = predict(model_1, newdata = pred_feel_kph))
+
+pred_feel_kph
+```
+
+## Question 7
+
+```{r}
+bikes <- bikes |> 
+  mutate(weekend = as.factor(weekend))
+
+model_2 <- lm(rides ~ wind_kph + temp_c + weekend,
+              data = bikes)
+
+get_regression_table(model_2) %>% 
+  select(term, estimate)
+```
+
+When it is a weekend, the model predicts a 713.575 decrease in ridership compared to a weekday.
+
+## Question 8
+
+```{r}
+library(ggeffects)
+prediction_weekend <- ggpredict(model_2,
+                         terms = "weekend",
+                         ci_level = NA)
+prediction_weekend
+```
+
+The expected ridership for a weekend day is 2970 rides when temperature feel and windspeed are average. The expected ridership for a weekday is 3683 rides when temperature feel and windspeed are average.
+
+## Question 9
+
+```{r}
+get_regression_points(model_2)
+```
+
+The day that the model is most wrong about predicted ridership is October 29, 2012, as there was only 20 rides on a typically higher average ridership day. This is because Hurricane Sandy made landfall in the U.S. on this day.
