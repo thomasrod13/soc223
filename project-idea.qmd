@@ -1,0 +1,22 @@
+---
+title: "Final Project"
+author: "Thomas Rodriguez"
+format: html
+editor: visual
+---
+
+## Idea
+
+I am interested in looking at the gameshow Jeopardy! I would want to look at how predictive a category is in determining whether contestants know the answer to the question. In a sense, which category types are more difficult than others. This is interesting to me to understand what categories may be more important to study if I (or someone) were to want to go on the show.
+
+## Datasets
+
+https://raw.githubusercontent.com/jwolle1/jeopardy_clue_dataset/master/combined_season1-39.tsv
+
+J!Archive: https://j-archive.com/showgame.php?game_id=8661
+
+Interesting article: https://colindavy.medium.com/how-i-won-jeopardy-with-data-science-c2e9b52a1958
+
+Jessie: She is looking at Spotify data.
+
+Kristy: She is looking at finance and net worth.
