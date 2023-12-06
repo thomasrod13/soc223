@@ -1,0 +1,330 @@
+---
+title: "The Evolution of Jeopardy! in Difficulty Over Time"
+format: html
+embed-resources: true
+editor: visual
+echo: false
+---
+
+### Thomas Rodriguez, SOCIOL 223 Fall 2023
+
+## 1. Introduction
+
+### 1.1 Overview
+
+At forty seasons on air, Jeopardy! continues to be one of the most popular cable TV game shows[^1]. However, over time, there have been minimal changes to the game's format. This study aims to better understand how Jeopardy! has evolved over the years. My project investigates if Jeopardy! has gotten more difficult for contestants, measured by right and wrong answers given in a game.
+
+[^1]: Koblin, John. 2023. \"This Broadcast TV Genre Continues to Thrive. (What Are Game Shows?).\" *The New York Times*, June 29, sec. Business. https://www.nytimes.com/2023/06/29/business/media/tv-game-shows-thrive.html.
+
+For my study, I created a data set using data from the J!Archive website[^2]. I compiled information on the number of right and wrong answers of forty games across five seasons: season 1 (1984-1985), 10 (1993-1994), 20 (2003-2004), 30 (2013-2014), and 39 (2022-2023).
+
+[^2]: \"J! Archive.\" 2023. https://j-archive.com/.
+
+There was no existing Jeopardy! data on this information, so it was difficult to fully compile all of the data on J!Archive, which limited me to taking a smaller sample of games from the seasons. I only included regular season games, excluding tournaments or specials. I did not use games from season 40 because there has not been a regular season game aired, so season 39 is the most recent season for this study.
+
+I have one explanatory variables in the analysis, season, and two outcome variables, percent correct and percent incorrect.
+
+```{r}
+#| message: false
+#| warning: false
+library(tidyverse)
+library(moderndive)
+library(readxl)
+library(infer)
+library(patchwork)
+library(broom)
+library(ggeffects)
+theme_set(theme_minimal())
+
+jeopardy_data <- read_excel("jeopardy-data.xlsx")
+```
+
+Here is a snapshot of five random rows of the data set:
+
+```{r}
+sample_n(jeopardy_data, 5) %>% 
+knitr::kable(digits = 2)
+```
+
+### 1.2 What is Jeopardy!?
+
+Jeopardy! consists of three rounds: the Jeopardy! round, the Double Jeopardy! round, and the Final Jeopardy! round. For the Jeopardy! and Double Jeopardy! rounds, there are sixty clues in total. There are thirty per round, with five clues in each category. In the data set, total answered is the total number of clues answered in the game. The Final Jeopardy! round is not included. As such, if the total answered is less than sixty, that means that there were some clues that were never revealed, likely due to running out of time. Correct is the number of correct responses given in a game and incorrect is the number of incorrect responses given. It is important to note that the total correct and incorrect will not always equal total answered, as there can be multiple incorrect responses given for a single clue. The percent correct and incorrect are calculated by correct divided by total answered and incorrect divided by total answered.
+
+## 2. Exploratory Data Analysis
+
+```{r}
+#| message: false
+jeopardy_data <- jeopardy_data %>% 
+  mutate(pct_cor = pct_cor*100)
+jeopardy_data <- jeopardy_data %>% 
+  mutate(pct_inc = pct_inc*100)
+jeopardy_data <- jeopardy_data %>% 
+  mutate(season_char = season)
+jeopardy_data$season_char <- as.character(jeopardy_data$season_char)
+```
+
+Looking at the distribution of the percentage of correct responses across the seasons, they do not appear skewed and generally take on a normal distribution shape, though season 39 appears the least normal.
+
+```{r}
+ggplot(jeopardy_data,
+       aes(x = pct_cor)) +
+  geom_histogram(binwidth = 7.5,
+                 color = "white",
+                 fill = "blue") +
+  facet_wrap(~season) +
+  labs(x = "Percent of Correct Responses",
+       y = "Frequency")
+```
+
+For the percentage of incorrect responses, there also appears to not be much skew, though seasons 10 and 30 are slightly more skewed to having less incorrect responses. They take on a normal distribution shape, though there is a greater spread in season 1 than other seasons.
+
+```{r}
+ggplot(jeopardy_data,
+       aes(x = pct_inc)) +
+  geom_histogram(binwidth = 7.5,
+                 color = "white",
+                 fill = "blue") +
+  facet_wrap(~season) +
+  labs(x = "Percent of Incorrect Responses",
+       y = "Frequency")
+```
+
+Looking at the relationship between the explanatory variable season and numerical outcome variables of percent correct and percent incorrect, there seems to be a pattern where season 1 has a high mean percentage of correct and incorrect responses, while the other seasons have lower mean percentages. However, season 10 is the exception, as it has a higher mean percentage of correct responses in comparison to the other seasons. There are appear to be a few outliers but these are minimal. Additionally, season 39 has the greatest variation of the percent of correct responses while season 1 has the greatest variation of the percent of incorrect responses, visualized by having the largest interquartile ranges.
+
+```{r}
+#| message: false
+ correct_plot <- ggplot(jeopardy_data,
+       aes(x = season_char,
+           y = pct_cor,
+           group = season_char,
+           fill = season_char)) +
+  geom_boxplot(alpha = .5) +
+  labs(x = "Season",
+       y = "Percent Correct")
+ 
+ incorrect_plot <- ggplot(jeopardy_data,
+                          aes(x = season_char,
+                              y = pct_inc,
+                              group = season_char,
+                              fill = season_char)) +
+   geom_boxplot(alpha = .5) +
+   labs(x = "Season",
+        y = "Percent Incorrect")
+ 
+ correct_plot + incorrect_plot
+```
+
+## 3. Regression
+
+### 3.1 Comparing Possible Models
+
+I tested two different models for the relationship between the season and percentage of incorrect answers and the season and the percentage of correct answers. Models 1 are 3 were linear models, while 2 and 4 are non-linear models.
+
+```{r}
+model1 <- lm(pct_inc ~ season,
+         data = jeopardy_data)
+model2 <- lm(pct_inc ~ (season + I(season^2)),
+         data = jeopardy_data)
+model3 <- lm(pct_cor ~ season,
+         data = jeopardy_data)
+model4 <- lm(pct_cor ~ (season + I(season^2)),
+         data = jeopardy_data)
+```
+
+```{r, fig.show='hide', results='hide'}
+tidy(model1, conf.int = TRUE)
+
+ggpredict(model1,
+          terms = c("season")) %>%  
+  plot()
+
+tidy(model2, conf.int = TRUE)
+
+ggpredict(model2,
+          terms = c("season")) %>%  
+  plot()
+
+tidy(model3, conf.int = TRUE)
+
+ggpredict(model3,
+          terms = c("season")) %>%  
+  plot()
+
+tidy(model4, conf.int = TRUE)
+
+ggpredict(model4,
+          terms = c("season")) %>%  
+  plot()
+```
+
+To understand which models are better, I looked at the regression summaries of the different models as well as the AIC.
+
+```{r}
+get_regression_summaries(model1) %>% 
+  knitr::kable(digits = 3)
+get_regression_summaries(model2) %>% 
+  knitr::kable(digits = 3)
+
+AIC(model1, model2) %>% 
+  knitr::kable(digits = 0)
+```
+
+```{r}
+get_regression_summaries(model3) %>% 
+  knitr::kable(digits = 3)
+get_regression_summaries(model4) %>% 
+  knitr::kable(digits = 3)
+
+AIC(model3, model4) %>% 
+  knitr::kable(digits = 0)
+```
+
+For incorrect responses, the r.squared for the non-linear model was 0.321, higher than the linear model's 0.193. Additionally, the AIC was lower for the non-linear model, so this model was chosen to interpret and analyze. The non-linear model was also chosen for correct responses as it had a higher r.squared and lower AIC than its linear counterpart.
+
+### 3.2 Regression Model
+
+Below are the two regression models used in my analysis.
+
+#### Percentage of Incorrect Responses Model
+
+```{r}
+tidy(model2, conf.int = TRUE) %>% 
+  knitr::kable(digits = 3)
+
+ggpredict(model2,
+          terms = c("season")) %>%  
+  plot()
+```
+
+#### Percentage of Correct Responses Model
+
+```{r}
+tidy(model4, conf.int = TRUE) %>% 
+  knitr::kable(digits = 3)
+
+ggpredict(model4,
+          terms = c("season")) %>%  
+  plot()
+```
+
+The components of the incorrect responses regression model are:
+
+Outcome variable *y1* = Percentage of Incorrect Responses
+
+Numerical explanatory variable *x1* = Season
+
+And the correct responses regression model are:
+
+Outcome variable *y1 =* Percentage of Correct Responses
+
+Numerical explanatory variable *x1* = Season
+
+where the unit of analysis is Jeopardy! shows, with each row in the data set corresponding to a singular game.
+
+### 3.3 Interpreting the Regression Tables
+
+Below is the regression equations for the percentage of incorrect responses and percentage of correct responses:
+
+$$
+\widehat{percentage} = b_0 - b_{season} \times season\ + b_{season} \times (season)^2
+$$
+
+$$
+\widehat{incorrect} = 26.300 - 1.060 \times season + 0.020 \times (season)^2
+$$
+
+$$
+\widehat{correct} = 90.200 - 0.366 \times season + 0.005 \times (season)^2
+$$
+
+The intercepts (26.3 and 90.2) represent the predicted average percentage of incorrect responses and average percentage of correct responses, respectively, when the season is zero.
+
+The estimate for the slope for the percent of incorrect responses and for the percent of correct responses is the change in the average percent of incorrect or correct responses depending on the season of the show. The models predict that for each additional season, the associated decrease in percent of incorrect and correct responses will be smaller and eventually increase.
+
+To best understand the model's predictions, the difference between seasons can be observed. For the respective seasons in the data set the model estimates that the average percentage of incorrect responses are: 25.26%, 17.7%, 13.1%, 12.5%, and 15.38%. On the other hand, it estimates that the average percentage of correct responses across the seasons are: 89.84%, 87.04%, 84.88%, 83.72%, and 83.53%. This demonstrates that the model predicts a smaller associated decrease for each additional season, and even a positive increase for the percentage of incorrect responses starting after season 30.
+
+### 3.4 Inference for Regression
+
+I will test null hypotheses for both the relationship between season and the percentage of incorrect responses and season and the percentage of correct responses. The null hypothesis is that there is no relationship between these two variables.
+
+$$
+H_0 : \beta_{prct} = 0
+$$
+
+$$
+H_A :\beta_{prct} ≠ 0
+$$
+
+Given that there appears to be a meaningful relationship since the 95% confidence interval for the season slopes in both models are negative, (-1.33, -0.794) for percent of incorrect responses and (-0.594, -0.138) for percent of correct responses, which is in line with the negative relationship between season and percent of incorrect and correct responses, and the p-values are both small (less than 0.001), I reject the null hypothesis in favor of the alternative that the season slope is not zero and negative.
+
+### 3.5 Residual Analysis
+
+I ran a residual analysis to see if there are any systematic patterns of residuals in the models.
+
+```{r}
+model2_points <- get_regression_points(model2)
+
+ggplot(model2_points,
+       aes(x = pct_inc_hat,
+           y = residual)) +
+  geom_jitter(alpha = .2) +
+  geom_hline(yintercept = 0,
+             color = "blue") +
+  labs(x = "Percentage of Incorrect Responses",
+       y = "Residual",
+       title = "Scatterplot of residuals against explanatory variable")
+
+ggplot(model2_points,
+       aes(x = residual)) +
+  geom_histogram(boundary = 0,
+                 binwidth = 5,
+                 color = "white",
+                 fill = "blue") +
+  labs(x = "Residual",
+       title = "Histogram of residuals")
+```
+
+```{r}
+model4_points <- get_regression_points(model4)
+
+ggplot(model4_points,
+       aes(x = pct_cor_hat,
+           y = residual)) +
+  geom_jitter(alpha = .2) +
+  geom_hline(yintercept = 0,
+             color = "blue") +
+  labs(x = "Percentage of Correct Responses",
+       y = "Residual",
+       title = "Scatterplot of residuals against explanatory variable")
+
+ggplot(model4_points,
+       aes(x = residual)) +
+  geom_histogram(boundary = 0,
+                 binwidth = 5,
+                 color = "white",
+                 fill = "blue") +
+  labs(x = "Residual",
+       title = "Histogram of residuals")
+```
+
+The residuals are normally distributed for both incorrect and correct responses, evidenced by the histograms. For the scatterplots, the data limits its reliability because it only includes five seasons. However, they all appear to not have any systematic patterns, having a spread both above and below zero. However, there does appear to be a pattern for the percent of correct responses, where the residuals for season 10 responses (about 87% of correct responses on the graph) are much higher than the predicted value. I conclude that the assumptions for inference are met, but it is worth looking at if season 10 responses had a large influence on the conclusions.
+
+## 4. Discussion
+
+### 4.1 Conclusions
+
+I found that with each new season of Jeopardy!, the percentage of incorrect responses and percentage of correct responses decreased but eventually began to stabilize and not decrease or increase by much. On average, the percent of incorrect responses decreased by a smaller amount for every one unit increase in season, and began to increase towards the most recent seasons. The percent of correct responses also followed a similar pattern, but decreased by an even smaller amount for every one unit increase in season. This does not mean that the seasons of Jeopardy! cause there to be less incorrect or correct responses, but there is an association. I was not surprised to find that the percentage of correct responses has decreased, since I hypothesized that Jeopardy! has gotten more difficult with its clues. However, I was surprised to find that the percentage of incorrect responses has also decreased by about half since season 1 (from around 26% to 13%). I expected there to be an increase in incorrect responses as I thought that the game has gotten more difficult.
+
+Overall, these results suggest that measuring Jeopardy!'s difficulty over time can not be entirely explained by the percentage of incorrect and correct responses. On the one hand, the analysis proves that there is an association between the explanatory variable season and outcome variables percentage of incorrect responses and percentage of correct responses. However, these two are slightly at odds, as both have decreased over time. As such, there may be other factors that have contributed to the decline in the percentage of incorrect and correct responses over the seasons. One explanation is players have gotten better at playing Jeopardy!. Players may be less likely to buzz in for a clue that they do not know than in previous seasons, as not giving a response does not result in a penalty. This could explain why there have been less incorrect responses as well as correct responses. As such, there is room to consider if Jeopardy!'s format be changed in some ways to increase difficulty or make it more rewarding for players to buzz in. One idea is to incur a penalty onto players for not giving a response after a certain number of times, as this would encourage players to have to buzz in more which would increase the percentage of responses. Another idea, presented by executive producer of the show Mike Davies, is to reward players with an extra cash bonus who run a category (answering all the clues in a category without switching to a different category)[^3]. This reward system can also motivate players to buzz in more and make the game more competitive.
+
+[^3]: \"\'Jeopardy!\' Executive Producer Is Thinking of Adding a Major Rule Change.\" 2022. *6abc Philadelphia*. September 23. https://6abc.com/jeopardy-rule-change-executive-producer-mike-davies-running-a-category-cash-bonus/12254555/.
+
+### 4.2 Limitations
+
+This data set had limitations. First, because I had to create the data set by hand, it does not include every show from the seasons included, because that would have taken many hours. Given that the data set is only a sample of the seasons, the true average of correct and incorrect responses is unknown. As such, the results of this study do not reflect the true evolution across seasons, only an estimation. However, since the sample size is large, the margin of error is likely less than 5%, which means that the estimation is likely reflective of the true evolution. Further, since the data only includes five seasons, this also does not reflect the true change as other seasons could change the shape or slope of the curve. Therefore, it is difficult to generalize these results to the entire Jeopardy! show. Instead, the results more so reflect a trend in the show of there being a decrease in percentages of incorrect and correct responses over time. Another limitation is that season was the only explanatory variable looked at. I chose this variable because other potential variables that could have an influence on the outcome variables, such as looking at what types of categories produce more incorrect or correct responses, was much harder to compile. As such, season may not be the best explanation for Jeopardy! difficulty. On the other hand, I recognize that the outcome variables may also not be the best indicators of difficulty because of the complexity of Jeopardy!. As stated before, contestants do not always buzz in, so also looking at how many clues were not answered could have been a better indicator of difficulty.
+
+### 4.3 Questions for Future Research
+
+If I continued to research more about Jeopardy!, I would like to work with a data set that includes all the games from all seasons instead of just forty games from five seasons. This would give me a better idea of the true association between my variables. It would also be good to have a data set that includes the percentage of non-responses, as I stated before that this could be a good indicator of difficulty as well. It would also be interesting to include other explanatory variables, like category, to see the effect this has had on the outcome variables as well and the interaction of season and category.
+
+As the data suggests that Jeopardy! is currently more difficult than it was in season 1, it would be interesting to research whether there has been previous research done on this topic and if the show has ever announced wanting to make it more difficult. Additionally, I would like to look at other components of Jeopardy!, such as how powerful is Final Jeopardy! in determining the winner of a game or how much more difficult are special events than regular season games, like the Tournament of Champions.
